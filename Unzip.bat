@@ -7,4 +7,4 @@ echo Please wait...
 cls
 echo ============
 echo Media Builder installers are EXTRACTED!
-del AcronisBackupAdvanced_*.exe
+rem del AcronisBackupAdvanced_*.exe

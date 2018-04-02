@@ -1,17 +1,16 @@
-'''
+"""
 Script is created to automate Acronis Linux-based Bootable media creation (ISO) using Acronis Media Builder (MB).
-Measured time of creation of 11 ISOs is about 4 minutes (or 7 min from Installation to Deinstallation of MB).
+The script can automatically install -> create ISOs -> uninstall MB of existing localization.
 How To Use it:
-    1. Install MB of required localization on Windows 7 US and later. Machine must have 1 CD-ROM and no Floppy or flash!
-    2. Specify new build number in the variable "build_number"
-    3. Specify localization in variable "localization"
-    4. Install Python 3.+ 
-    5. Install "pywinauto" via cmd line:> pip install -U pywinauto
+    1. Prepare a VM with Win7 x64 with 1 CD-ROM and no Floppy or flash! It is important step! Disk C: = 100GB
+    2. Specify new build number in the variable "build_number". It should look like 50073_
+    3. Make sure that na_keys.json and keys.json are present in the root folder near the script. The files with licenses
+    4. On the machine, run Setup.bat to set up Python 3 and pywinauto library
+    5. Put all big installers of ABR to ./installers folder and run Unzip.bat. MSI will be extracted to separate folders
     6. Run the script:> python ABA11.7_MediaCreation_script.py
-    7. When all ISOs of the installed localization are created (find them on 'C:\'), install MB of another localization
-    (Previous MB is uninstalled automatically if all ISOs are crated)
+    7. Wait when all ISOs of all localizations are created (find them on 'C:\'). DO NOT MOVE THE MOUSE.
 DO NOT open any other windows/applications during creating media!
-'''
+"""
 
 from pywinauto.application import Application
 import os
@@ -20,16 +19,28 @@ import logging
 import json
 
 
-build_number = "50073_"     # Specify a build number with "_" character in the end. Example: "50064_"
-# if_na = True                # Set True if NA build is used
+build_number = "50073_"  # Specify a build number with "_" character in the end. Example: "50064_"
+# if_na = True           # Set True if NA build is used
 
 logging.basicConfig(level=logging.INFO, filename='C:\MediaCreationLog.log', format='%(asctime)s %(message)s')
 
 
 installer_folder_list = []  # Getting a folders list
-for (dirpath, dirnames, filenames) in os.walk("C:\Environment\installers"):  # change to %CD%\\installers\\
+
+
+for (dirpath, dirnames, filenames) in os.walk(".\\installers"):  # Getting a folder list with installers
     installer_folder_list.extend(dirnames)
     break
+print(installer_folder_list)
+if installer_folder_list == []:
+    print("No MSI installers found. Extracting MSI...")
+    logging.info("No MSI installers found. Extracting MSI...")
+    os.system(".\\Unzip.bat")
+    print("MSI are extracted")
+    logging.info("MSI are extracted")
+else:
+    logging.info("MSI installers exist. " + str(installer_folder_list) + " Continue...")
+    print("MSI installers exist. " + str(installer_folder_list) + " Continue...")
 list_of_all_localization_symbols = []  # List that contains all symbols related to localization part of folder names
 iteration = 0
 list_of_grouped_localizations = []  # List of lists of localizations
@@ -50,17 +61,19 @@ logging.info("Installers with the following localizations are found in the folde
 
 
 try:
-    data = json.load(open("C:\\Automation\\keys.json", 'r'))
+    data = json.load(open(".\\keys.json", 'r'))
     keys_list = data["main_keys"]
     trial_us_keys = data["trial_keys"]
 except FileNotFoundError:
     print("ERROR: File with keys not found!")
+    logging.info("ERROR: File with keys not found!")
 
 try:
-    data = json.load(open("C:\\Automation\\na_keys.json", 'r'))
+    data = json.load(open(".\\na_keys.json", 'r'))
     na_keys_list = data["main_na_keys"]
 except FileNotFoundError:
     print("ERROR: File with keys not found!")
+    logging.info("ERROR: File with NA keys not found!")
 
 names_list = [
     "AcronisBackupAdvancedWS_11.7_",
@@ -94,8 +107,8 @@ na_names_list = [
 ]
 
 
-def uninstallation():  # Is called when uninstallation of Media Builder is required
-    # wmic process where name="iexplore.exe" call terminate
+def uninstallation():
+    """ Is called when uninstallation of Media Builder is required """
     logging.info("Media Builder uninstallation starts!")
     print("Media Builder is being uninstalled. Please wait...")
     os.system('wmic product where vendor="Acronis" call uninstall')
@@ -107,7 +120,8 @@ def uninstallation():  # Is called when uninstallation of Media Builder is requi
         print("Something went wrong! See MSI log for more information")
 
 
-def installation(current_local):  # Is called when installation of Media Builder is required
+def installation(current_local):
+    """ Is called when installation of Media Builder is required """
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
         logging.info("An unknown Media Builder is present in system and will be uninstalled.")
         uninstallation()
@@ -123,17 +137,20 @@ def installation(current_local):  # Is called when installation of Media Builder
         logging.info("Installation failed!")
 
 
-def us_keys_extend(trial_us_keys_f):  # Extends a non-US list of keys with a US list of keys
+def us_keys_extend(trial_us_keys_f):
+    """ Extends a non-US list of keys with a US list of keys """
     trial_us_keys_f.extend(trial_us_keys)
     return trial_us_keys_f
 
 
-def us_names_extend(trial_us_names_f):  # Extends a non-US list of names with a US list of names
+def us_names_extend(trial_us_names_f):
+    """ Extends a non-US list of names with a US list of names """
     trial_us_names_f.extend(trial_us_names)
     return trial_us_names_f
 
 
-def main_script(key_list_f, names_list_f, locale):  # , names_list_f):  # THIS IS THE MAIN SCRIPT TO CREATE ISO
+def main_script(key_list_f, names_list_f, locale):
+    """ This function creates ISO """
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         logging.info("ISO creation starts...")
         new_iso_name = "C:\\" + names_list_f[k] + build_number + locale  # Select a name from list
@@ -241,14 +258,8 @@ def main_script(key_list_f, names_list_f, locale):  # , names_list_f):  # THIS I
             logging.info('Media "' + new_iso_name + '.iso" is created ' + "\n====================")
         else:
             print('Media "' + new_iso_name + '.iso" is NOT created')
-            logging.info("ISO is not created!")
+            logging.info("ISO is not created!" + new_iso_name)
 
-
-def read_keys_json():
-    if os.path.exists("C:\\Automation\\keys.json"):
-        pass
-    else:
-        print("File with keys not found!")
 
 
 def main():
@@ -267,6 +278,7 @@ def main():
         print('>> Uninstallation is going to start <<')
         time.sleep(5)
         uninstallation()
+    print("Operation is complete! See the log file 'C:\MediaCreationLog.log' for more information.")
 
 
 if __name__ == '__main__':
