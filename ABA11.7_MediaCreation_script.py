@@ -31,7 +31,6 @@ installer_folder_list = []  # Getting a folders list
 for (dirpath, dirnames, filenames) in os.walk(".\\installers"):  # Getting a folder list with installers
     installer_folder_list.extend(dirnames)
     break
-print(installer_folder_list)
 if installer_folder_list == []:
     print("No MSI installers found. Extracting MSI...")
     logging.info("No MSI installers found. Extracting MSI...")
@@ -39,8 +38,8 @@ if installer_folder_list == []:
     print("MSI are extracted")
     logging.info("MSI are extracted")
 else:
-    logging.info("MSI installers exist. " + str(installer_folder_list) + " Continue...")
-    print("MSI installers exist. " + str(installer_folder_list) + " Continue...")
+    logging.info("MSI installers exist: " + str(installer_folder_list) + " Continue...")
+    print("MSI installers exist. Continue...")
 list_of_all_localization_symbols = []  # List that contains all symbols related to localization part of folder names
 iteration = 0
 list_of_grouped_localizations = []  # List of lists of localizations
@@ -190,11 +189,10 @@ def main_script(key_list_f, names_list_f, locale):
         fxtext.click()
         key_copy = fxtext.WindowText()
         if key_copy.upper() != key_list_f[k].upper():  # Check if entered key equals to original key
-            logging.info("Wrong key is specified: " + str(key_copy))
+            logging.info("Wrong key is specified: " + str(key_copy) + "\nRetyping key...")
             print("Wrong key is specified: " + str(key_copy))
-            logging.info("New localization will be installed! After it, re-create ISOs of the current localization: " + locale)
-            print("New localization will be installed! After it, re-create ISOs of the current localization: " + locale)
-            break
+            fxtext.send_keystrokes('^a')
+            fxtext.send_keystrokes(key_list_f[k])
         logging.info(str(key_list_f[k]) + " is selected for media")
         time.sleep(1)
         window.SetFocus()
@@ -228,13 +226,20 @@ def main_script(key_list_f, names_list_f, locale):
         next_button.SetFocus()
         next_button.click()
         logging.info("'Next' button in the 'Bootable Media format' page was clicked")
-        buildwizard.send_keystrokes('^a')
-        time.sleep(2)
-        buildwizard.send_keystrokes('{DELETE}')
-        buildwizard.send_keystrokes('^a')
         time.sleep(2)
         buildwizard.FXAFileNameField.click()
+        buildwizard.FXAFileNameField.send_keystrokes('^a')
+        buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
+        time.sleep(2)
         buildwizard.FXAFileNameField.send_chars(new_iso_name)
+        iso_name__copy = buildwizard.FXAFileNameField.WindowText()
+        if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
+            buildwizard.FXAFileNameField.click()
+            buildwizard.FXAFileNameField.send_keystrokes('^a')
+            buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
+            time.sleep(2)
+            logging.info("Re-typing ISO name...")
+            buildwizard.FXAFileNameField.send_chars(new_iso_name)
         time.sleep(2)
         next_button.SetFocus()
         next_button.wait('exists visible enabled ready active', timeout=20)

@@ -10,7 +10,7 @@ powercfg -X hibernate-timeout-dc 0
 echo Power management settings were changed
 echo Please wait...
 "%CD%\bin\python-3.6.0.exe" /quiet InstallAllUsers=1 PrependPath=1 Include_test=0 TargetDir="C:\Program Files (x86)\python360"
-"C:\Program Files (x86)\python360\Scripts\pip.exe" install pywinauto
+"C:\Program Files (x86)\python360\Scripts\pip.exe" install "%CD%\bin\pywinauto-0.6.4"
 cls
 echo Python is installed. 7zip installation starts. Please wait...
 msiexec /i "%CD%\bin\7z1701.msi" /quiet /passive /qn /norestart 
