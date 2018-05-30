@@ -1,5 +1,6 @@
 """
 Script is created to automate Acronis Linux-based Bootable media creation (ISO) using Acronis Media Builder (MB).
+The script uses GUI of the MB, so DO NOT move the mouse and DO NOT use the keyboard while creating ISOs.
 The script can automatically install -> create ISOs -> uninstall MB of existing localization.
 How To Use it:
     1. Prepare a VM with Win7 x64 with 1 CD-ROM and no Floppy or flash! It is important step! Disk C: = 100GB
@@ -8,8 +9,7 @@ How To Use it:
     4. On the machine, run Setup.bat to set up Python 3 and pywinauto library
     5. Put all big installers of ABR to ./installers folder and run Unzip.bat. MSI will be extracted to separate folders
     6. Run the script:> python ABA11.7_MediaCreation_script.py
-    7. Wait when all ISOs of all localizations are created (find them on 'C:\'). DO NOT MOVE THE MOUSE.
-DO NOT open any other windows/applications during creating media!
+    7. Wait when all ISOs of all localizations are created (find them on 'C:\').
 """
 
 from pywinauto.application import Application
@@ -17,6 +17,7 @@ import os
 import time
 import logging
 import json
+import pywin32_system32
 
 
 build_number = "50073_"  # Specify a build number with "_" character in the end. Example: "50064_"
@@ -254,7 +255,7 @@ def main_script(key_list_f, names_list_f, locale):
         next_button.click()
         logging.info("'Proceed' button in the 'SUMMARY' was clicked")
         finish_message_box = app.FXAMessageBoxImpl
-        finish_message_box.wait("ready active", timeout=30)
+        finish_message_box.wait("ready active", timeout=50)
         ok_button_in_box = finish_message_box.FXButton
         ok_button_in_box.click()
         logging.info("'OK' button in the message box was clicked")
@@ -264,7 +265,6 @@ def main_script(key_list_f, names_list_f, locale):
         else:
             print('Media "' + new_iso_name + '.iso" is NOT created')
             logging.info("ISO is not created!" + new_iso_name)
-
 
 
 def main():
