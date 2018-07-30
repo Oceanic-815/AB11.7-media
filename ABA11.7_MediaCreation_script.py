@@ -1,12 +1,12 @@
 """
 Script is created to automate Acronis Linux-based Bootable media creation (ISO) using Acronis Media Builder (MB).
-The script uses GUI of the MB, so DO NOT move the mouse and DO NOT use the keyboard while creating ISOs.
+The script uses GUI of the MB, so DO NOT use the mouse and the keyboard while creating ISOs.
 The script can automatically install -> create ISOs -> uninstall MB of existing localization.
 How To Use it:
     1. Prepare a VM with Win7 x64 with 1 CD-ROM and no Floppy or flash! It is important step! Disk C: = 100GB
     2. Specify new build number in the variable "build_number". It should look like 50073_
     3. Make sure that na_keys.json and keys.json are present in the root folder near the script. The files with licenses
-    4. On the machine, run Setup.bat to set up Python 3 and pywinauto library
+    4. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
     5. Put all big installers of ABR to ./installers folder and run Unzip.bat. MSI will be extracted to separate folders
     6. Run the script:> python ABA11.7_MediaCreation_script.py
     7. Wait when all ISOs of all localizations are created (find them on 'C:\').
@@ -17,7 +17,7 @@ import os
 import time
 import logging
 import json
-import pywin32_system32
+#  import pywin32_system32
 
 
 build_number = "50073_"  # Specify a build number with "_" character in the end. Example: "50064_"
@@ -26,13 +26,13 @@ build_number = "50073_"  # Specify a build number with "_" character in the end.
 logging.basicConfig(level=logging.INFO, filename='C:\MediaCreationLog.log', format='%(asctime)s %(message)s')
 
 
-installer_folder_list = []  # Getting a folders list
+installer_folder_list = []  # Folders list
 
 
 for (dirpath, dirnames, filenames) in os.walk(".\\installers"):  # Getting a folder list with installers
     installer_folder_list.extend(dirnames)
     break
-if installer_folder_list == []:
+if installer_folder_list == []:  # Installers existence check
     print("No MSI installers found. Extracting MSI...")
     logging.info("No MSI installers found. Extracting MSI...")
     os.system(".\\Unzip.bat")
@@ -61,18 +61,18 @@ logging.info("Installers with the following localizations are found in the folde
 
 
 try:
-    data = json.load(open(".\\keys.json", 'r'))
+    data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with licenses
     keys_list = data["main_keys"]
     trial_us_keys = data["trial_keys"]
 except FileNotFoundError:
-    print("ERROR: File with keys not found!")
-    logging.info("ERROR: File with keys not found!")
+    print("ERROR: json file with keys not found! Put the file into the root folder along with the script.")
+    logging.info("ERROR: json file with keys not found!")
 
 try:
     data = json.load(open(".\\na_keys.json", 'r'))
     na_keys_list = data["main_na_keys"]
 except FileNotFoundError:
-    print("ERROR: File with keys not found!")
+    print("ERROR: json file with NA keys not found! Put the file into the root folder along with the script.")
     logging.info("ERROR: File with NA keys not found!")
 
 names_list = [
@@ -153,8 +153,8 @@ def main_script(key_list_f, names_list_f, locale):
     """ This function creates ISO """
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         logging.info("ISO creation starts...")
-        new_iso_name_trial = "C:\\" + names_list_f[k] + locale  # Select a name from list
-        new_iso_name = "C:\\" + names_list_f[k] + build_number + locale
+        new_iso_name_trial = "C:\\" + names_list_f[k] + locale  # ISO name
+        new_iso_name = "C:\\" + names_list_f[k] + build_number + locale  # ISO name (Not TRIAL version)
         app = Application().start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
         time.sleep(2)
         window = app.window_()
@@ -233,9 +233,9 @@ def main_script(key_list_f, names_list_f, locale):
         buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
         logging.info("ISO name field cleaned up")
         time.sleep(2)
-        if key_list_f[k] == "NL6FZHS7-MT2B4FEM-MSCWFJJK-3VHJWFSJ-JEJM9AUR-XVC2MDFE-XU47U82Q-M8U5QUMA" or key_list_f[k] == "4JXBVPDF-6G9DWPJ2-NYUQFNZN-D4YC3XBV-R25GDYF8-EYTGVLTR-65L4QWVW-7L7RRASN":
+        if key_list_f[k] == "NL6FZHS7-MT2B4FEM-MSCWFJJK-3VHJWFSJ-JEJM9AUR-XVC2MDFE-XU47U82Q-M8U5QUMA" or \
+                key_list_f[k] == "4JXBVPDF-6G9DWPJ2-NYUQFNZN-D4YC3XBV-R25GDYF8-EYTGVLTR-65L4QWVW-7L7RRASN":
             buildwizard.FXAFileNameField.send_chars(new_iso_name_trial)
-            print("TRUAL_KEY! " + new_iso_name_trial)
             iso_name__copy = buildwizard.FXAFileNameField.WindowText()
             if iso_name__copy.lower() != new_iso_name_trial.lower():  # Checking if ISO name was correctly entered
                 buildwizard.FXAFileNameField.click()
@@ -249,7 +249,6 @@ def main_script(key_list_f, names_list_f, locale):
                 logging.info("'" + new_iso_name_trial + "' is a correct ISO name")
         else:
             buildwizard.FXAFileNameField.send_chars(new_iso_name)
-            print("NOT TRIAL " + new_iso_name)
             iso_name__copy = buildwizard.FXAFileNameField.WindowText()
             if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
                 buildwizard.FXAFileNameField.click()
@@ -277,18 +276,18 @@ def main_script(key_list_f, names_list_f, locale):
         ok_button_in_box = finish_message_box.FXButton
         ok_button_in_box.click()
         logging.info("'OK' button in the message box was clicked")
-        if os.path.exists(new_iso_name + ".iso"):  # Check if the created ISO is in the specified location
-            print('Media "' + new_iso_name + '.iso" is created')
-            logging.info('Media "' + new_iso_name + '.iso" is created ' + "\n====================")
+        if os.path.exists(new_iso_name + ".iso") or os.path.exists(new_iso_name_trial + ".iso"):  # ISO creation check
+            print('Media is created')
+            logging.info('Media is created \n====================')
         else:
-            print('Media "' + new_iso_name + '.iso" is NOT created')
-            logging.info("ISO is not created!" + new_iso_name)
+            print('Media is NOT created')
+            logging.info("ISO is not created!")
 
 
 def main():
     for i in range(len(localization_list)):
         print('>> Installation is going to start << ' + localization_list[i])
-        #installation(localization_list[i])
+        installation(localization_list[i])
         time.sleep(5)
         if localization_list[i] == "en-US":
             extended_license_list = us_keys_extend(keys_list)  # extend common keys list with US keys
@@ -300,11 +299,9 @@ def main():
             time.sleep(5)
         print('>> Uninstallation is going to start <<')
         time.sleep(5)
-        #uninstallation()
+        uninstallation()
     print("Operation is complete! See the log file 'C:\MediaCreationLog.log' for more information.")
 
 
 if __name__ == '__main__':
     main()
-
-
