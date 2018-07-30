@@ -153,7 +153,8 @@ def main_script(key_list_f, names_list_f, locale):
     """ This function creates ISO """
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         logging.info("ISO creation starts...")
-        new_iso_name = "C:\\" + names_list_f[k] + build_number + locale  # Select a name from list
+        new_iso_name_trial = "C:\\" + names_list_f[k] + locale  # Select a name from list
+        new_iso_name = "C:\\" + names_list_f[k] + build_number + locale
         app = Application().start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
         time.sleep(2)
         window = app.window_()
@@ -185,15 +186,20 @@ def main_script(key_list_f, names_list_f, locale):
         buildwizard.send_keystrokes('{SPACE}')
         fxtext = buildwizard['FXText']
         fxtext.click()
-        logging.info("Text field was successfully selected for entering a key")
+        logging.info("Selecting Text field for entering a key")
         fxtext.send_keystrokes(key_list_f[k])  # Select a license key from list
         fxtext.click()
         key_copy = fxtext.WindowText()
         if key_copy.upper() != key_list_f[k].upper():  # Check if entered key equals to original key
             logging.info("Wrong key is specified: " + str(key_copy) + "\nRetyping key...")
             print("Wrong key is specified: " + str(key_copy))
+            fxtext.click()
             fxtext.send_keystrokes('^a')
+            fxtext.send_keystrokes('{DELETE}')
             fxtext.send_keystrokes(key_list_f[k])
+        else:
+            print("Specified license key is correct.")
+            logging.info("Specified license key is correct.")
         logging.info(str(key_list_f[k]) + " is selected for media")
         time.sleep(1)
         window.SetFocus()
@@ -207,22 +213,16 @@ def main_script(key_list_f, names_list_f, locale):
         # ***SELECT "ISO" AS A MEDIA TYPE:*** (Here we select ISO item from a media type list according to localization)
         if locale == "en-US" or locale == "en-EU" or locale == "de-DE" or locale == "zh-TW" or locale == "ja-JP" or locale == "ko-KR" or locale == "pl-PL" or locale == "zh-CN" or locale == "es-ES":
             buildwizard.send_keystrokes('{UP}')
-            print("Localization check: One of these is selected: US, EU, DE, TW, JP, KR, PL, CN, ES")
-            logging.info(locale + " localization specified")
         elif locale == "cs-CZ" or locale == "it-IT":
-            logging.info(locale + " localization specified")
             buildwizard.send_keystrokes('{UP}')
             time.sleep(1)
             buildwizard.send_keystrokes('{UP}')
-            print("Localization check: One of these is selected: CZ, IT")
         elif locale == "fr-FR":
-            logging.info(locale + " localization specified")
             buildwizard.send_keystrokes('{UP}')
             time.sleep(1)
             buildwizard.send_keystrokes('{UP}')
             time.sleep(1)
             buildwizard.send_keystrokes('{UP}')
-            print("Localization check: One of these is selected: FR")
         time.sleep(1)
         next_button.SetFocus()
         next_button.click()
@@ -231,20 +231,38 @@ def main_script(key_list_f, names_list_f, locale):
         buildwizard.FXAFileNameField.click()
         buildwizard.FXAFileNameField.send_keystrokes('^a')
         buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
+        logging.info("ISO name field cleaned up")
         time.sleep(2)
-        buildwizard.FXAFileNameField.send_chars(new_iso_name)
-        iso_name__copy = buildwizard.FXAFileNameField.WindowText()
-        if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
-            buildwizard.FXAFileNameField.click()
-            buildwizard.FXAFileNameField.send_keystrokes('^a')
-            buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
-            time.sleep(2)
-            logging.info("Re-typing ISO name...")
+        if key_list_f[k] == "NL6FZHS7-MT2B4FEM-MSCWFJJK-3VHJWFSJ-JEJM9AUR-XVC2MDFE-XU47U82Q-M8U5QUMA" or key_list_f[k] == "4JXBVPDF-6G9DWPJ2-NYUQFNZN-D4YC3XBV-R25GDYF8-EYTGVLTR-65L4QWVW-7L7RRASN":
+            buildwizard.FXAFileNameField.send_chars(new_iso_name_trial)
+            print("TRUAL_KEY! " + new_iso_name_trial)
+            iso_name__copy = buildwizard.FXAFileNameField.WindowText()
+            if iso_name__copy.lower() != new_iso_name_trial.lower():  # Checking if ISO name was correctly entered
+                buildwizard.FXAFileNameField.click()
+                buildwizard.FXAFileNameField.send_keystrokes('^a')
+                buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
+                time.sleep(1)
+                logging.info("Re-typing ISO name...")
+                buildwizard.FXAFileNameField.send_chars(new_iso_name_trial)
+            else:
+                print("ISO name is correct!")
+                logging.info("'" + new_iso_name_trial + "' is a correct ISO name")
+        else:
             buildwizard.FXAFileNameField.send_chars(new_iso_name)
+            print("NOT TRIAL " + new_iso_name)
+            iso_name__copy = buildwizard.FXAFileNameField.WindowText()
+            if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
+                buildwizard.FXAFileNameField.click()
+                buildwizard.FXAFileNameField.send_keystrokes('^a')
+                buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
+                time.sleep(1)
+                logging.info("Re-typing ISO name...")
+                buildwizard.FXAFileNameField.send_chars(new_iso_name)
+                print("ISO name is correct!")
+                logging.info("'" + new_iso_name + "' is a correct ISO name")
         time.sleep(2)
         next_button.SetFocus()
         next_button.wait('exists visible enabled ready active', timeout=20)
-        logging.info("'" + new_iso_name + "' name specified for new ISO")
         next_button.set_focus()
         next_button.click()
         logging.info("'Next' button in the 'Specify name for ISO' page was clicked")
@@ -270,7 +288,7 @@ def main_script(key_list_f, names_list_f, locale):
 def main():
     for i in range(len(localization_list)):
         print('>> Installation is going to start << ' + localization_list[i])
-        installation(localization_list[i])
+        #installation(localization_list[i])
         time.sleep(5)
         if localization_list[i] == "en-US":
             extended_license_list = us_keys_extend(keys_list)  # extend common keys list with US keys
@@ -282,9 +300,11 @@ def main():
             time.sleep(5)
         print('>> Uninstallation is going to start <<')
         time.sleep(5)
-        uninstallation()
+        #uninstallation()
     print("Operation is complete! See the log file 'C:\MediaCreationLog.log' for more information.")
 
 
 if __name__ == '__main__':
     main()
+
+
