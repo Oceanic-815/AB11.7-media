@@ -117,7 +117,7 @@ def uninstallation():
         print("====================\nMedia Builder is uninstalled!")
     else:
         logging.info("Media Builder uninstallation FAILED!")
-        print("Something went wrong! See MSI log for more information")
+        print("Something went wrong! See MSI log for more information or try uninstalling builder manually")
 
 
 def installation(current_local):
@@ -299,7 +299,7 @@ def main():
             time.sleep(5)
         print('>> Uninstallation is going to start <<')
         time.sleep(5)
-        uninstallation()
+        #uninstallation()
     print("Operation is complete! See the log file 'C:\MediaCreationLog.log' for more information.")
 
 

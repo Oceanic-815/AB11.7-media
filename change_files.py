@@ -1,41 +1,29 @@
-# How to use:
-# 1. Generate some files (0.5 - 1MB size) in a folder, e.g. C:\files
-# 2. In this script, change the folder paths if the path with files is different;
-# 3. Specify value of "file_offset" variable to set a point from where to start changing each file in the folder
-# 4. In the function "os.urandom", Specify how many bytes you need to write to each file
-
-import os
-import sys
+import os, getopt, sys
 
 
-print("\nStat of the folder specified: " + str(os.stat("C:\ProgramData\TEMP")))
-print("FS encoding: " + sys.getfilesystemencoding())
-print("Username: " + os.getlogin() + "\n==============")
-print("Platform: " + sys.platform.upper() + " " + os.name.upper())
-print(os.getcwd() + " - is a current working directory and it contents: ")
-print(os.listdir())
-os.chdir("C:\\Programdata\\Temp\\")  # change current directory
-print(os.getcwd() + " - Now it is a current working directory and it contents: ")
-print(os.listdir())
-trees = os.walk(os.getcwd())
-print(trees)
-print("WALK function output:")
-for i in trees:
-    print(i)
-if os.path.exists("AAA"):
-    try:
-        os.remove("AAA")  # like "os.removedirs" which
-    except PermissionError:
-        print("It is a FOLDER, not a FILE!! Use 'rmdir()' to delete folders or 'os.removedirs()' to delete recursively.")
-else:
-    os.makedirs("AAA")  # like mkdir(), but makes all intermediate-level directories
-print("os.truncate(path, lenght)" +" --> "+" Cuts a file to the lenght specified")
-print(os.system("hostname"))
+opts, args = getopt.getopt(sys.argv[1:], "o:d:f:h")
 
+offset, data, path = None, None, None
+for name, value in opts:
+    if name == "-o":
+        offset = value.split(":")[1]
+    elif name == "-d":
+        data = value.split(":")[1]
+    elif name == "-f":
+        path = value[1:]
+    elif name == "-h":
+        print("\nThis script changes files in the specified path to a folder.\n"
+              "Along with the path (-f), an offset (-o) and amount of data (-d) in bytes must\nbe specified.\n"
+              '\nUsage:>> scriptname -o:523264 -d:1024 -f:"C:/files/"\n'
+              'Excplanation:\n'
+              'E.g. you have a folder with some 512 KB (524288 B) files and you need to change the last 1024 bytes\n'
+              'of each file. So, offset in this case = 523264 and data to write = 1024. \n'
+              'in this case, only the tail which is equal to 1KB of each file will be changed.\n'
+              'If to specify offset bigger than the size of existing files, those files will be re-written to\n'
+              'the specified size.\nEND.\n')
 
 
 def file_changer(folder_path, offset_val, data_amount):
-
 
     file_list = []
 
@@ -46,13 +34,21 @@ def file_changer(folder_path, offset_val, data_amount):
     for i in file_list:
         f = open(folder_path + i, 'rb+')
         f.read()
-        print("File '" + i + "' was modified")
         f.seek(offset_val)
         f.write(os.urandom(data_amount))
         f.close()
+        print("File '" + i + "' was modified")
     print("\n=============\n"+str(len(file_list)) + " file(s) processed")
 
 
 if __name__ == '__main__':
-    pass
-    #file_changer("C:\\files\\", 1038576, 10000)  # path, offset, data
+    try:
+        file_changer(path, int(offset), int(data))
+    except TypeError:
+        print("Some arguments were missed. Command must have 3 arguments!")
+    except OSError:
+        print("Incorrect value for argument")
+    except ValueError:
+        print("Value for argument is not specified")
+    except OverflowError:
+        print("Too big value of data specified")
