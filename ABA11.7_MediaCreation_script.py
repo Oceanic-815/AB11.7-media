@@ -1,15 +1,19 @@
 """
-Script is created to automate Acronis Linux-based Bootable media creation (ISO) using Acronis Media Builder (MB).
-The script uses GUI of the MB, so DO NOT use the mouse and the keyboard while creating ISOs.
-The script can automatically install -> create ISOs -> uninstall MB of existing localization.
+Script is created to automate Acronis Linux-based Bootable media AB11.7 creation (ISO) using Acronis Media Builder (MB).
+The script uses GUI of the MB, so DO NOT use the mouse and the keyboard while creating ISOs. Better to use a separate VM
+The script can automatically install MB -> create ISOs -> uninstall MB of existing localization.
+The script detects if there are MSI installers of the MB in ".\installers" folder. If there aren't, all MSI files of MB
+will be unpacked into that folder from the detected BIG installers.
 How To Use it:
     1. Prepare a VM with Win7 x64 with 1 CD-ROM and no Floppy or flash! It is important step! Disk C: = 100GB
-    2. Specify new build number in the variable "build_number". It should look like 50073_
-    3. Make sure that na_keys.json and keys.json are present in the root folder near the script. The files with licenses
-    4. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
-    5. Put all big installers of ABR to ./installers folder and run Unzip.bat. MSI will be extracted to separate folders
-    6. Run the script:> python ABA11.7_MediaCreation_script.py
-    7. Wait when all ISOs of all localizations are created (find them on 'C:\').
+    2. Specify new build number in the variable "build_number", e.g "50073"
+    3. If NA build should be created, specify if_na = True, if Maint build - False
+    4. Make sure that na_keys.json and keys.json are present in the root folder near the script. They have licenses.
+    5. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
+    6. Put all big installers of ABR to ./installers folder and run Unzip.bat. MSI will be extracted to separate folders
+    7. Run the script:> python ABA11.7_MediaCreation_script.py
+    8. Wait when all ISOs of all localizations are created (find them in '../media/' folder).
+    9. Create ISOs with TRIAL keys manually (actual for US localization only)
 """
 
 from pywinauto.application import Application
@@ -17,30 +21,31 @@ import os
 import time
 import logging
 import json
-#  import pywin32_system32
 
+build_number = "50064"  # Specify a build number with "_" character in the end. Example: "50064_"
+if_na = False            # Set True if NA build is used
 
-build_number = "50073_"  # Specify a build number with "_" character in the end. Example: "50064_"
-# if_na = True           # Set True if NA build is used
-
-logging.basicConfig(level=logging.INFO, filename='C:\MediaCreationLog.log', format='%(asctime)s %(message)s')
-
+try:
+    logging.basicConfig(level=logging.INFO, filename='C:\MediaCreationLog.log', format='%(asctime)s %(message)s')
+except:
+    pass
 
 installer_folder_list = []  # Folders list
-
+get_curr_dir = os.getcwd()
 
 for (dirpath, dirnames, filenames) in os.walk(".\\installers"):  # Getting a folder list with installers
     installer_folder_list.extend(dirnames)
     break
 if installer_folder_list == []:  # Installers existence check
-    print("No MSI installers found. Extracting MSI...")
-    logging.info("No MSI installers found. Extracting MSI...")
+    print('No MSI installers found. Extracting MSI files...')
+    logging.info('No MSI installers found. Extracting MSI files...')
     os.system(".\\Unzip.bat")
-    print("MSI are extracted")
-    logging.info("MSI are extracted")
+    print('\nMSI FILES EXTRACTED! RE-RUN THE SCRIPT\n')
+    logging.info('MSI files extracted')
 else:
     logging.info("MSI installers exist: " + str(installer_folder_list) + " Continue...")
     print("MSI installers exist. Continue...")
+
 list_of_all_localization_symbols = []  # List that contains all symbols related to localization part of folder names
 iteration = 0
 list_of_grouped_localizations = []  # List of lists of localizations
@@ -63,7 +68,6 @@ logging.info("Installers with the following localizations are found in the folde
 try:
     data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with licenses
     keys_list = data["main_keys"]
-    trial_us_keys = data["trial_keys"]
 except FileNotFoundError:
     print("ERROR: json file with keys not found! Put the file into the root folder along with the script.")
     logging.info("ERROR: json file with keys not found!")
@@ -75,36 +79,18 @@ except FileNotFoundError:
     print("ERROR: json file with NA keys not found! Put the file into the root folder along with the script.")
     logging.info("ERROR: File with NA keys not found!")
 
-names_list = [
-    "AcronisBackupAdvancedWS_11.7_",
-    "AcronisBackupAdvancedUniversal_11.7_",
-    "AcronisBackupAdvancedHyperV_11.7_",
-    "AcronisBackupAdvancedVMware_11.7_",
-    "AcronisBackupAdvancedRHEV_11.7_",
-    "AcronisBackupAdvancedXEN_11.7_",
-    "AcronisBackupAdvancedOracle_11.7_",
-    "AcronisBackupEssentials_11.7_",
-    "AcronisBackupAdvancedPC_11.7_",
-    "AcronisBackupWS_11.7_",
-    "AcronisBackupPC_11.7_"
-]
-trial_us_names = [
-    "AcronisBackupAdvancedUniversal_11.7_trial_",
-    "AcronisBackupWS_11.7_trial_"
-]
-na_names_list = [
-    'AcronisBackupAdvancedWS_11.7N_',
-    'AcronisBackupAdvancedUniversal_11.7N_',
-    'AcronisBackupAdvancedHyperV_11.7N_',
-    'AcronisBackupAdvancedVMware_11.7N_',
-    'AcronisBackupAdvancedRHEV_11.7N_',
-    'AcronisBackupAdvancedXEN_11.7N_',
-    'AcronisBackupAdvancedOracle_11.7N_',
-    'AcronisBackupEssentials_11.7N_',
-    'AcronisBackupAdvancedPC_11.7N_',
-    'AcronisBackupWS_11.7N_',
-    'AcronisBackupPC_11.7N_'
-]
+names_list = ["AcronisBackupAdvancedWS_11.7_", "AcronisBackupAdvancedUniversal_11.7_", "AcronisBackupAdvancedHyperV_11.7_", "AcronisBackupAdvancedVMware_11.7_", "AcronisBackupAdvancedRHEV_11.7_", "AcronisBackupAdvancedXEN_11.7_", "AcronisBackupAdvancedOracle_11.7_", "AcronisBackupEssentials_11.7_", "AcronisBackupAdvancedPC_11.7_", "AcronisBackupWS_11.7_", "AcronisBackupPC_11.7_"]
+na_names_list = ['AcronisBackupAdvancedWS_11.7N_', 'AcronisBackupAdvancedUniversal_11.7N_', 'AcronisBackupAdvancedHyperV_11.7N_', 'AcronisBackupAdvancedVMware_11.7N_', 'AcronisBackupAdvancedRHEV_11.7N_', 'AcronisBackupAdvancedXEN_11.7N_', 'AcronisBackupAdvancedOracle_11.7N_', 'AcronisBackupEssentials_11.7N_', 'AcronisBackupAdvancedPC_11.7N_', 'AcronisBackupWS_11.7N_', 'AcronisBackupPC_11.7N_']
+
+os.chdir(".\\media")
+current_working_directory = os.getcwd()
+
+try:
+    for i in range(len(localization_list)):
+        os.makedirs(localization_list[i])
+except FileExistsError:
+    print("Target folders exist")
+    logging.info("Target folders exist")
 
 
 def uninstallation():
@@ -127,7 +113,9 @@ def installation(current_local):
         uninstallation()
     print("New Media Builder is being installed. Please wait...")
     logging.info("New Media Builder is being installed.")
-    installation_command = u'start /wait msiexec /i C:\\Environment\\installers\\AcronisBackupAdvanced_11.7_' + build_number + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'  # original ->> u'msiexec /i %CD%\\installers\\AcronisBackupAdvanced_11.7_' + build_number + localization + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+    parent_of_current_dir = os.path.abspath(os.path.join(current_working_directory, os.pardir))
+    installation_command = 'start /wait msiexec /i '+parent_of_current_dir+'\\installers\\AcronisBackupAdvanced_11.7_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+    print(installation_command)
     os.system(installation_command)
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
         print("Installation complete!")
@@ -137,24 +125,11 @@ def installation(current_local):
         logging.info("Installation failed!")
 
 
-def us_keys_extend(trial_us_keys_f):
-    """ Extends a non-US list of keys with a US list of keys """
-    trial_us_keys_f.extend(trial_us_keys)
-    return trial_us_keys_f
-
-
-def us_names_extend(trial_us_names_f):
-    """ Extends a non-US list of names with a US list of names """
-    trial_us_names_f.extend(trial_us_names)
-    return trial_us_names_f
-
-
 def main_script(key_list_f, names_list_f, locale):
     """ This function creates ISO """
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         logging.info("ISO creation starts...")
-        new_iso_name_trial = "C:\\" + names_list_f[k] + locale  # ISO name
-        new_iso_name = "C:\\" + names_list_f[k] + build_number + locale  # ISO name (Not TRIAL version)
+        new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + build_number + '_' + locale
         app = Application().start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
         time.sleep(2)
         window = app.window_()
@@ -187,7 +162,7 @@ def main_script(key_list_f, names_list_f, locale):
         fxtext = buildwizard['FXText']
         fxtext.click()
         logging.info("Selecting Text field for entering a key")
-        fxtext.send_keystrokes(key_list_f[k])  # Select a license key from list
+        fxtext.send_chars(key_list_f[k])
         fxtext.click()
         key_copy = fxtext.WindowText()
         if key_copy.upper() != key_list_f[k].upper():  # Check if entered key equals to original key
@@ -196,7 +171,7 @@ def main_script(key_list_f, names_list_f, locale):
             fxtext.click()
             fxtext.send_keystrokes('^a')
             fxtext.send_keystrokes('{DELETE}')
-            fxtext.send_keystrokes(key_list_f[k])
+            fxtext.send_chars(key_list_f[k])
         else:
             print("Specified license key is correct.")
             logging.info("Specified license key is correct.")
@@ -227,39 +202,27 @@ def main_script(key_list_f, names_list_f, locale):
         next_button.SetFocus()
         next_button.click()
         logging.info("'Next' button in the 'Bootable Media format' page was clicked")
-        time.sleep(2)
+        time.sleep(1)
         buildwizard.FXAFileNameField.click()
         buildwizard.FXAFileNameField.send_keystrokes('^a')
         buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
         logging.info("ISO name field cleaned up")
-        time.sleep(2)
-        if key_list_f[k] == "NL6FZHS7-MT2B4FEM-MSCWFJJK-3VHJWFSJ-JEJM9AUR-XVC2MDFE-XU47U82Q-M8U5QUMA" or \
-                key_list_f[k] == "4JXBVPDF-6G9DWPJ2-NYUQFNZN-D4YC3XBV-R25GDYF8-EYTGVLTR-65L4QWVW-7L7RRASN":
-            buildwizard.FXAFileNameField.send_chars(new_iso_name_trial)
-            iso_name__copy = buildwizard.FXAFileNameField.WindowText()
-            if iso_name__copy.lower() != new_iso_name_trial.lower():  # Checking if ISO name was correctly entered
-                buildwizard.FXAFileNameField.click()
-                buildwizard.FXAFileNameField.send_keystrokes('^a')
-                buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
-                time.sleep(1)
-                logging.info("Re-typing ISO name...")
-                buildwizard.FXAFileNameField.send_chars(new_iso_name_trial)
-            else:
-                print("ISO name is correct!")
-                logging.info("'" + new_iso_name_trial + "' is a correct ISO name")
-        else:
+        time.sleep(1)
+        buildwizard.FXAFileNameField.send_chars(new_iso_name)
+        iso_name__copy = buildwizard.FXAFileNameField.WindowText()
+        if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
+            buildwizard.FXAFileNameField.click()
+            buildwizard.FXAFileNameField.send_keystrokes('^a')
+            buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
+            time.sleep(1)
+            logging.info("Re-typing ISO name...")
             buildwizard.FXAFileNameField.send_chars(new_iso_name)
-            iso_name__copy = buildwizard.FXAFileNameField.WindowText()
-            if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
-                buildwizard.FXAFileNameField.click()
-                buildwizard.FXAFileNameField.send_keystrokes('^a')
-                buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
-                time.sleep(1)
-                logging.info("Re-typing ISO name...")
-                buildwizard.FXAFileNameField.send_chars(new_iso_name)
-                print("ISO name is correct!")
-                logging.info("'" + new_iso_name + "' is a correct ISO name")
-        time.sleep(2)
+            print("ISO name is correct!")
+            logging.info("'" + new_iso_name + "' is a correct ISO name")
+        else:
+            print("ISO name is correct!")
+            logging.info("'" + new_iso_name + "' is a correct ISO name")
+        time.sleep(1)
         next_button.SetFocus()
         next_button.wait('exists visible enabled ready active', timeout=20)
         next_button.set_focus()
@@ -276,7 +239,7 @@ def main_script(key_list_f, names_list_f, locale):
         ok_button_in_box = finish_message_box.FXButton
         ok_button_in_box.click()
         logging.info("'OK' button in the message box was clicked")
-        if os.path.exists(new_iso_name + ".iso") or os.path.exists(new_iso_name_trial + ".iso"):  # ISO creation check
+        if os.path.exists(new_iso_name + ".iso"):  # ISO creation check
             print('Media is created')
             logging.info('Media is created \n====================')
         else:
@@ -284,24 +247,23 @@ def main_script(key_list_f, names_list_f, locale):
             logging.info("ISO is not created!")
 
 
-def main():
+def start():
+
+
+
     for i in range(len(localization_list)):
-        print('>> Installation is going to start << ' + localization_list[i])
         installation(localization_list[i])
-        time.sleep(5)
-        if localization_list[i] == "en-US":
-            extended_license_list = us_keys_extend(keys_list)  # extend common keys list with US keys
-            extended_names_list = us_names_extend(names_list)  # extend common names list with US names
-            main_script(extended_license_list, extended_names_list, localization_list[i])
-            time.sleep(5)
+        time.sleep(1)
+        if if_na:
+            print("NA build used")
+            main_script(na_keys_list, na_names_list, localization_list[i])
         else:
+            print("MAINT build used")
             main_script(keys_list, names_list, localization_list[i])
-            time.sleep(5)
-        print('>> Uninstallation is going to start <<')
-        time.sleep(5)
-        #uninstallation()
+        time.sleep(1)
+        uninstallation()
     print("Operation is complete! See the log file 'C:\MediaCreationLog.log' for more information.")
 
 
 if __name__ == '__main__':
-    main()
+    start()

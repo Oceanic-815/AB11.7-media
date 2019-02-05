@@ -25,30 +25,37 @@ for name, value in opts:
 
 def file_changer(folder_path, offset_val, data_amount):
 
-    file_list = []
+    global list_of_files_in_specified_folder
+    global count_files_in_total  # Define global var to return it and use in further code
+    list_of_files_in_specified_folder = []
+    count_files_in_total = 0
 
     for (dirpath, dirnames, filenames) in os.walk(folder_path):
-        file_list.extend(filenames)
+        list_of_files_in_specified_folder.extend(filenames)
         break
 
-    for i in file_list:
+    for i in list_of_files_in_specified_folder:
         f = open(folder_path + i, 'rb+')
         f.read()
         f.seek(offset_val)
         f.write(os.urandom(data_amount))
         f.close()
         print("File '" + i + "' was modified")
-    print("\n=============\n"+str(len(file_list)) + " file(s) processed")
+        count_files_in_total += 1
+    print("\n=============\n"+str(len(list_of_files_in_specified_folder)) + " file(s) processed")
 
 
 if __name__ == '__main__':
     try:
         file_changer(path, int(offset), int(data))
     except TypeError:
-        print("Some arguments were missed. Command must have 3 arguments!")
+        print("Some arguments were missed. Command must have 3 arguments! For help, use -h")
     except OSError:
         print("Incorrect value for argument")
     except ValueError:
         print("Value for argument is not specified")
     except OverflowError:
         print("Too big value of data specified")
+    except KeyboardInterrupt:
+        print("\n=============\nOperation cancelled")
+        print(count_files_in_total, " files of " + str(len(list_of_files_in_specified_folder)) + " processed in total")
