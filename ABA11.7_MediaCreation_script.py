@@ -22,8 +22,10 @@ import time
 import logging
 import json
 
-build_number = "50064"  # Specify a build number with "_" character in the end. Example: "50064_"
-if_na = False            # Set True if NA build is used
+
+build_number = "50220"  # Specify a build number with "_" character in the end. Example: "50064_"
+if_na = True            # Set True if NA build is used
+
 
 try:
     logging.basicConfig(level=logging.INFO, filename='C:\MediaCreationLog.log', format='%(asctime)s %(message)s')
@@ -52,7 +54,10 @@ list_of_grouped_localizations = []  # List of lists of localizations
 localization_list = []  # Ready localizations used for main script
 local = ''
 for i in installer_folder_list:  # Extending list_of_all_localization_symbols list
-    a = i[33:]
+    if if_na:
+        a = i[34:]
+    else:
+        a = i[33:]
     list_of_all_localization_symbols.extend(a)
     while iteration < len(list_of_all_localization_symbols):  # Creating a list of grouped localizations list
         list_of_grouped_localizations.append(list_of_all_localization_symbols[iteration:iteration + 5])
@@ -86,7 +91,7 @@ os.chdir(".\\media")
 current_working_directory = os.getcwd()
 
 try:
-    for i in range(len(localization_list)):
+    for i in range(len(localization_list)):  # Creating subfolders in /media folder for ISO
         os.makedirs(localization_list[i])
 except FileExistsError:
     print("Target folders exist")
@@ -114,7 +119,10 @@ def installation(current_local):
     print("New Media Builder is being installed. Please wait...")
     logging.info("New Media Builder is being installed.")
     parent_of_current_dir = os.path.abspath(os.path.join(current_working_directory, os.pardir))
-    installation_command = 'start /wait msiexec /i '+parent_of_current_dir+'\\installers\\AcronisBackupAdvanced_11.7_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+    if if_na:
+        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+    else:
+        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     print(installation_command)
     os.system(installation_command)
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
@@ -126,7 +134,7 @@ def installation(current_local):
 
 
 def main_script(key_list_f, names_list_f, locale):
-    """ This function creates ISO """
+    """ Goes through the wizard and creates ISO files"""
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         logging.info("ISO creation starts...")
         new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + build_number + '_' + locale
@@ -248,9 +256,6 @@ def main_script(key_list_f, names_list_f, locale):
 
 
 def start():
-
-
-
     for i in range(len(localization_list)):
         installation(localization_list[i])
         time.sleep(1)
@@ -263,6 +268,7 @@ def start():
         time.sleep(1)
         uninstallation()
     print("Operation is complete! See the log file 'C:\MediaCreationLog.log' for more information.")
+    print("\nCreate TRIAL US media manually!\n")
 
 
 if __name__ == '__main__':
