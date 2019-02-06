@@ -5,14 +5,14 @@ The script can automatically install MB -> create ISOs -> uninstall MB of existi
 The script detects if there are MSI installers of the MB in ".\installers" folder. If there aren't, all MSI files of MB
 will be unpacked into that folder from the detected BIG installers.
 How To Use it:
-    1. Prepare a VM with Win7 x64 with 1 CD-ROM and no Floppy or flash! It is important step! Disk C: = 100GB
+    1. Prepare a VM Win7x64 with 1 CD-ROM and 1 network (DHCP), w/o Floppy or USB flash! Disk C: = 100GB
     2. Specify new build number in the variable "build_number", e.g "50073"
     3. If NA build should be created, specify if_na = True, if Maint build - False
     4. Make sure that na_keys.json and keys.json are present in the root folder near the script. They have licenses.
     5. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
-    6. Put all big installers of ABR to ./installers folder and run Unzip.bat. MSI will be extracted to separate folders
+    6. Put all big installers of ABR to /installers folder and run Unzip.bat. MSI will be extracted to separate folders
     7. Run the script:> python ABA11.7_MediaCreation_script.py
-    8. Wait when all ISOs of all localizations are created (find them in '../media/' folder).
+    8. Wait when all ISOs of all localizations are created (find them in '/media/' folder).
     9. Create ISOs with TRIAL keys manually (actual for US localization only)
 """
 
