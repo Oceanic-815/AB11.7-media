@@ -43,8 +43,8 @@ for (dirpath, dirnames, filenames) in os.walk(".\\installers"):  # Getting a fol
     installer_folder_list.extend(dirnames)
     break
 if installer_folder_list == []:  # Installers existence check
-    print('No MSI installers found. Extracting MSI files...')
-    logging.info('No MSI installers found. Extracting MSI files...')
+    print('No MSI installers found')
+    logging.info('No MSI installers found')
     os.system(".\\Unzip.bat")
     print('\nMSI FILES EXTRACTED! RE-RUN THE SCRIPT\n')
     logging.info('MSI files extracted')

@@ -2,7 +2,7 @@
 color 0E
 cd %CD%\installers
 cls
-echo Please wait...
+echo Extracting. Please wait...
 7z x *.exe "AcronisBootableComponentsMediaBuilder.msi" -o*
 cls
 echo ============
