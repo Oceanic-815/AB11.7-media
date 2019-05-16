@@ -59,3 +59,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\n=============\nOperation cancelled")
         print(count_files_in_total, " files of " + str(len(list_of_files_in_specified_folder)) + " processed in total")
+    else:
+        print("Error!")

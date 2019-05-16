@@ -25,16 +25,33 @@ import os
 import time
 import logging
 import json
+import sys
 
 
-build_number = "50230"  # Specify a build number with "_" character in the end. Example: "50064_"
-if_na = False            # Set True if NA build is used
+build_number = "50420"  # Specify a build number with "_" character in the end. Example: "50064_"
+if_na = True            # Set True if NA build is used
 
 
-try:
-    logging.basicConfig(level=logging.INFO, filename='C:\MediaCreationLog.log', format='%(asctime)s %(message)s')
-except:
-    print("Error occurred during log file creation")
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+console_formatter = logging.Formatter('%(asctime)s %(message)s')
+
+
+def setup_logger(name, log_file, level=logging.INFO):  # Function setup as many loggers as you want
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(formatter)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+    logger.addHandler(console_handler)
+    return logger
+
+
+# Creating a log file
+debuglog = setup_logger('debuglog', 'C:\MediaCreationLog.log')
+debuglog.info('Logging started')
+
 
 installer_folder_list = []  # Folders list
 get_curr_dir = os.getcwd()
@@ -43,14 +60,11 @@ for (dirpath, dirnames, filenames) in os.walk(".\\installers"):  # Getting a fol
     installer_folder_list.extend(dirnames)
     break
 if installer_folder_list == []:  # Installers existence check
-    print('No MSI installers found')
-    logging.info('No MSI installers found')
+    debuglog.warning('No MSI installers found')
     os.system(".\\Unzip.bat")
-    print('\nMSI FILES EXTRACTED! RE-RUN THE SCRIPT\n')
-    logging.info('MSI files extracted')
+    debuglog.info('Check if the installers exist and RE-RUN THE SCRIPT')
 else:
-    logging.info("MSI installers exist: " + str(installer_folder_list) + " Continue...")
-    print("MSI installers exist. Continue...")
+    debuglog.info("MSI installers exist: " + str(installer_folder_list) + " Continue...")
 
 list_of_all_localization_symbols = []  # List that contains all symbols related to localization part of folder names
 iteration = 0
@@ -70,23 +84,22 @@ for i in installer_folder_list:  # Extending list_of_all_localization_symbols li
                 len(list_of_grouped_localizations)):  # Finalizing localization list
             local = ''.join(list_of_grouped_localizations[new_cycle_to_get_local_list])
         localization_list.extend([local])
-print("Following localizations available: " + str(localization_list))
-logging.info("Installers with the following localizations are found in the folder: " + str(localization_list))
+debuglog.info("Installers with the following localizations are found in the folder: " + str(localization_list))
 
-
-try:
-    data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
-    keys_list = data["main_keys"]
-except FileNotFoundError:
-    print("ERROR: json file with keys not found! Put the file into the root folder along with the script.")
-    logging.info("ERROR: json file with keys not found!")
-
-try:
-    data = json.load(open(".\\na_keys.json", 'r'))
-    na_keys_list = data["main_na_keys"]
-except FileNotFoundError:
-    print("ERROR: json file with NA keys not found! Put the file into the root folder along with the script.")
-    logging.info("ERROR: File with NA keys not found!")
+if not if_na:
+    try:
+        data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
+        keys_list = data["main_keys"]
+    except FileNotFoundError:
+        debuglog.info("ERROR: json file with keys not found! Put the file into the root folder along with the script.")
+        exit()
+else:
+    try:
+        data = json.load(open(".\\na_keys.json", 'r'))
+        na_keys_list = data["main_na_keys"]
+    except FileNotFoundError:
+        debuglog.info("ERROR: json file with NA keys not found! Put the file into the root folder along with the script.")
+        exit()
 
 names_list = ["AcronisBackupAdvancedWS_11.7_", "AcronisBackupAdvancedUniversal_11.7_", "AcronisBackupAdvancedHyperV_11.7_", "AcronisBackupAdvancedVMware_11.7_", "AcronisBackupAdvancedRHEV_11.7_", "AcronisBackupAdvancedXEN_11.7_", "AcronisBackupAdvancedOracle_11.7_", "AcronisBackupEssentials_11.7_", "AcronisBackupAdvancedPC_11.7_", "AcronisBackupWS_11.7_", "AcronisBackupPC_11.7_"]
 na_names_list = ['AcronisBackupAdvancedWS_11.7N_', 'AcronisBackupAdvancedUniversal_11.7N_', 'AcronisBackupAdvancedHyperV_11.7N_', 'AcronisBackupAdvancedVMware_11.7N_', 'AcronisBackupAdvancedRHEV_11.7N_', 'AcronisBackupAdvancedXEN_11.7N_', 'AcronisBackupAdvancedOracle_11.7N_', 'AcronisBackupEssentials_11.7N_', 'AcronisBackupAdvancedPC_11.7N_', 'AcronisBackupWS_11.7N_', 'AcronisBackupPC_11.7N_']
@@ -98,61 +111,52 @@ try:
     for i in range(len(localization_list)):  # Creating subfolders in /media folder for ISO
         os.makedirs(localization_list[i])
 except FileExistsError:
-    print("Target sub-folders exist")
-    logging.info("Target sub-folders exist")
+    debuglog.info("Target sub-folders exist")
 
 
 def uninstallation():
     """ Is called when uninstallation of Media Builder is required """
-    logging.info("Media Builder uninstallation starts!")
-    print("Media Builder is being uninstalled. Please wait...")
+    debuglog.info("Media Builder uninstallation starts!")
     os.system('wmic product where vendor="Acronis" call uninstall')
     if not os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
-        logging.info("Media Builder uninstallation complete!")
-        print("====================\nMedia Builder is uninstalled!")
+        debuglog.info("Media Builder uninstallation complete!")
     else:
-        logging.info("Media Builder uninstallation FAILED!")
-        print("Something went wrong! See MSI log for more information or try uninstalling builder manually")
+        debuglog.warning("Media Builder uninstallation FAILED! See MSI log for more information or try uninstalling builder manually")
 
 
 def installation(current_local):
     """ Is called when installation of Media Builder is required """
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
-        logging.info("An unknown Media Builder is present in system and will be uninstalled.")
+        debuglog.info("An unknown Media Builder is present in system and will be uninstalled.")
         uninstallation()
-    print("New Media Builder is being installed. Please wait...")
-    logging.info("New Media Builder is being installed.")
+    debuglog.info("New Media Builder is being installed. Please wait...")
     parent_of_current_dir = os.path.abspath(os.path.join(current_working_directory, os.pardir))
     if if_na:
         installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     else:
         installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
-    print(installation_command)
+    debuglog.info('Exexuting ' + installation_command)
     try:
         os.system(installation_command)
     except application.AppStartError:
-        print("Check if build number is correct. If NA build is used, specify 'if_na = True', else 'if_na = False'")
-        logging.info("Check if build number is correct. If NA build is used, specify 'if_na = True', else 'if_na = False'")
+        debuglog.info("Check if build number is correct. If NA build is used, specify 'if_na = True', else 'if_na = False'")
         exit()
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
-        print("Installation complete!")
-        logging.info("Installation complete!")
+        debuglog.info("Installation complete!")
     else:
-        print("Installation FAILED!")
-        logging.info("Installation failed!")
+        debuglog.warning("Installation failed!")
 
 
 def main_script(key_list_f, names_list_f, locale):
     """ Goes through the wizard and creates ISO files"""
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
-        logging.info("ISO creation starts...")
+        debuglog.info("ISO creation starts...")
         new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + build_number + '_' + locale
         app = Application()
         try:
             app.start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
         except application.AppStartError:
-            print("Check if build number is correct. If NA build is used, specify 'if_na = True', else 'if_na = False'")
-            logging.info("Check if build № is correct. If NA build installed, specify 'if_na = True', else 'if_na = False'")
+            debuglog.info("Check if build number is correct. If NA build installed, specify 'if_na = True', else 'if_na = False'")
             exit()
         time.sleep(2)
         window = app.window_()
@@ -160,31 +164,31 @@ def main_script(key_list_f, names_list_f, locale):
         buildwizard = app.BuilderWizard
         buildwizard.Wait('ready')
         next_button = buildwizard[u'Next >FXButton3']
-        logging.info("Clicking 'Next' button in the start Wizard page")
+        debuglog.info("Clicking 'Next' button in the start Wizard page")
         next_button.click()
         next_button.wait('ready', timeout=20)
-        logging.info("Clicking 'Next' button in the 'Select media type' page")
+        debuglog.info("Clicking 'Next' button in the 'Select media type' page")
         next_button.click()
         next_button.wait('ready', timeout=20)
-        logging.info("Clicking 'Next' button in the 'Kernel parameters' page")
+        debuglog.info("Clicking 'Next' button in the 'Kernel parameters' page")
         next_button.click()
+        debuglog.info("Selecting AB x86/x64 components check boxes")
         buildwizard.FXAConfigurationTree1.click()
-        logging.info("Selecting AB x86/x64 components check boxes")
         buildwizard.send_keystrokes('{SPACE}')
-        logging.info("Clicking 'Next' button in the 'Components' page")
+        debuglog.info("Clicking 'Next' button in the 'Components' page")
         next_button.click()
         next_button.wait('ready', timeout=20)
-        logging.info("Clicking 'Next' button in the 'Network and remote connection' page")
+        debuglog.info("Clicking 'Next' button in the 'Network and remote connection' page")
         next_button.click()
-        logging.info("Clicking the first 'YES' button")
+        debuglog.info("Clicking the first 'YES' button")
         buildwizard.send_keystrokes('{ENTER}')
-        logging.info("Clicking the second 'YES' button")
+        debuglog.info("Clicking the second 'YES' button")
         buildwizard.send_keystrokes('{ENTER}')
-        logging.info("Selecting a radio button to enter a key")
+        debuglog.info("Selecting a radio button to enter a key")
         buildwizard.send_keystrokes('{DOWN}')
         buildwizard.send_keystrokes('{DOWN}')
         buildwizard.send_keystrokes('{SPACE}')
-        logging.info("Selecting Text field for entering a key")
+        debuglog.info("Selecting Text field for entering a key")
         fxtext = buildwizard['FXText']
         fxtext.click()
         fxtext.send_chars(key_list_f[k])
@@ -192,25 +196,23 @@ def main_script(key_list_f, names_list_f, locale):
         while True:  # Re-type key if it is not correct
             key_copy = fxtext.WindowText()
             if key_copy.upper() != key_list_f[k].upper():
-                print("Entered key is NOT correct. Re-typing...")
-                logging.info("Entered key is NOT correct. Re-typing...")
+                debuglog.warning("Entered key is NOT correct. Re-typing...")
                 fxtext.click()
                 fxtext.send_keystrokes('^a')
                 fxtext.send_keystrokes('{DELETE}')
                 fxtext.send_chars(key_list_f[k])
             else:
-                print("Entered key is correct. Continue...")
-                logging.info("Entered key is correct. Continue...")
+                debuglog.info("Entered key is correct. Continue...")
                 break
         time.sleep(0)
         window.SetFocus()
         fxtext.wait('ready', timeout=20)
-        logging.info("Clicking 'Next' button in the 'Enter a key' page")
+        debuglog.info("Clicking 'Next' button in the 'Enter a key' page")
         next_button.click()
-        logging.info("Clicking 'Next' button in the 'Specified key' page")
+        debuglog.info("Clicking 'Next' button in the 'Specified key' page")
         next_button.wait('ready', timeout=20)
         next_button.click()
-        logging.info("Selecting a panel with a list of targets")
+        debuglog.info("Selecting a panel with a list of media targets")
         buildwizard.send_keystrokes('{TAB}')
         # ***SELECT "ISO" AS A MEDIA TYPE:*** (Here we select ISO item from a media type list according to localization)
         if locale == "en-US" or locale == "en-EU" or locale == "de-DE" or locale == "zh-TW" or locale == "ja-JP" or locale == "ko-KR" or locale == "pl-PL" or locale == "zh-CN" or locale == "es-ES":
@@ -226,16 +228,17 @@ def main_script(key_list_f, names_list_f, locale):
             time.sleep(1)
             buildwizard.send_keystrokes('{UP}')
         time.sleep(1)
+        debuglog.info("Clicking 'Next' button in the 'Bootable Media format' page")
         next_button.SetFocus()
-        logging.info("Clicking 'Next' button in the 'Bootable Media format' page")
         next_button.click()
         time.sleep(1)
-        logging.info("Clicking a path field")
+        debuglog.info("Clicking a path field")
         buildwizard.FXAFileNameField.click()
+        debuglog.info("Erasing the default ISO name in the field")
         buildwizard.FXAFileNameField.send_keystrokes('^a')
         buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
-        logging.info("ISO name field cleaned up")
         time.sleep(0)
+        debuglog.info("Specifying a new path and a file name")
         buildwizard.FXAFileNameField.send_chars(new_iso_name)
         while True:  # Re-type ISO name if it is not correct
             iso_name__copy = buildwizard.FXAFileNameField.WindowText()
@@ -244,37 +247,32 @@ def main_script(key_list_f, names_list_f, locale):
                 buildwizard.FXAFileNameField.send_keystrokes('^a')
                 buildwizard.FXAFileNameField.send_keystrokes('{DELETE}')
                 time.sleep(0)
-                logging.info("Re-typing ISO name...")
                 buildwizard.FXAFileNameField.send_chars(new_iso_name)
-                print("ISO name is NOT correct! Re-typing...")
-                logging.info("'" + new_iso_name + "' is NOT a correct ISO name. Re-typing")
+                debuglog.warning("'" + new_iso_name + "' is NOT a correct ISO name. Re-typing")
             else:
-                print("ISO name is correct! Continue...")
-                logging.info("'" + new_iso_name + "' is a correct ISO name. Continue...")
+                debuglog.info("'" + new_iso_name + "' is a correct ISO name. Continue...")
                 break
         time.sleep(0)
+        debuglog.info("Clicking 'Next' button in the 'Specify name for ISO' page")
         next_button.SetFocus()
         next_button.wait('exists visible enabled ready active', timeout=20)
         next_button.set_focus()
-        logging.info("Clicking 'Next' button in the 'Specify name for ISO' page")
         next_button.click()
-        logging.info("Clicking 'Next' button in the 'Add drivers' page")
+        debuglog.info("Clicking 'Next' button in the 'Add drivers' page")
         next_button.click()
-        logging.info("Clicking 'Proceed' button in the 'SUMMARY' page")
+        debuglog.info("Clicking 'Proceed' button in the 'SUMMARY' page")
         next_button.wait('ready')
         next_button.set_focus()
         next_button.click()
         finish_message_box = app.FXAMessageBoxImpl
         finish_message_box.wait("ready active", timeout=50)
         ok_button_in_box = finish_message_box.FXButton
-        logging.info("Clicking 'OK' button in the message box")
+        debuglog.info("Clicking 'OK' button in the message box")
         ok_button_in_box.click()
         if os.path.exists(new_iso_name + ".iso"):  # ISO creation check
-            print('Media is created')
-            logging.info('Media is created \n====================')
+            debuglog.info('Media is created \n====================')
         else:
-            print('Media is NOT created')
-            logging.info("ISO is not created!")
+            debuglog.warning("ISO is not created!")
 
 
 def start():
@@ -282,20 +280,18 @@ def start():
         installation(localization_list[i])
         time.sleep(1)
         if if_na:
-            print("'if_na = True' specified")
+            debuglog.info("'if_na = True' specified")
             try:
                 main_script(na_keys_list, na_names_list, localization_list[i])
             except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled):
-                print("Error: Element Not Found/Enabled! Please Re-run the script.")
-                logging.info("Error: Element Not Found/Enabled! Please Re-run the script.")
+                debuglog.warning("Error: Element Not Found/Enabled! Please Re-run the script.")
                 exit()
         else:
-            print("'if_na = False' specified")
+            debuglog.info("'if_na = False' specified")
             try:
                 main_script(keys_list, names_list, localization_list[i])
             except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled):
-                print("Error: Element Not Found/Enabled! Please Re-run the script.")
-                logging.info("Error: Element Not Found/Enabled! Please Re-run the script.")
+                debuglog.warning("Error: Element Not Found/Enabled! Please Re-run the script.")
                 exit()
         time.sleep(1)
         uninstallation()
@@ -303,6 +299,5 @@ def start():
 
 if __name__ == '__main__':
     start()
-    print("Operation completed! See the log file 'C:\MediaCreationLog.log' for more information.")
-    print("\nCreate TRIAL US media manually!\n")
-    logging.info("Create TRIAL US media manually!\n")
+    debuglog.info("Operation completed! See the log file 'C:\MediaCreationLog.log' for more information.")
+    debuglog.info("Create TRIAL US media manually!\n")
