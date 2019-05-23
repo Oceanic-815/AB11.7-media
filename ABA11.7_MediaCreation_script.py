@@ -6,8 +6,8 @@ The script detects if there are MSI installers of the MB in ".\installers" folde
 will be unpacked into that folder from the detected BIG installers.
 How To Use it:
     1. Prepare a VM Win7x64 with 1 CD-ROM and 1 network (DHCP), w/o Floppy or USB flash! Disk C: = 100GB
-    2. Specify new build number in the variable "build_number", e.g "50073"
-    3. If NA build should be created, specify if_na = True, if Maint build - False
+    2. Specify new build number in the variable "BUILD_NUMBER", e.g "50073"
+    3. If NA build should be created, specify "NORTH_AMERICAN" = True, if Maint build - False
     4. Make sure that na_keys.json and keys.json are present in the root folder near the script. They have licenses.
     5. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
     6. Put all big installers of ABR to /installers folder and run Unzip.bat. MSI will be extracted to separate folders
@@ -21,6 +21,7 @@ from pywinauto import application
 from pywinauto import base_wrapper
 from pywinauto import MatchError
 from pywinauto import ElementNotFoundError
+from pywinauto import timings
 import os
 import time
 import logging
@@ -28,8 +29,8 @@ import json
 import sys
 
 
-build_number = "50420"  # Specify a build number with "_" character in the end. Example: "50064_"
-if_na = True            # Set True if NA build is used
+BUILD_NUMBER = "50420"  # Specify a build number with. Example: "50064"
+NORTH_AMERICAN = True   # Set True if NA build is used
 
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -72,7 +73,7 @@ list_of_grouped_localizations = []  # A list of lists of localizations
 localization_list = []  # Ready localizations used for main script
 local = ''
 for i in installer_folder_list:  # Extending list_of_all_localization_symbols list, e.g. [en-US, fr-FR]
-    if if_na:
+    if NORTH_AMERICAN:
         a = i[34:]
     else:
         a = i[33:]
@@ -86,7 +87,7 @@ for i in installer_folder_list:  # Extending list_of_all_localization_symbols li
         localization_list.extend([local])
 debuglog.info("Installers with the following localizations are found in the folder: " + str(localization_list))
 
-if not if_na:
+if not NORTH_AMERICAN:
     try:
         data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
         keys_list = data["main_keys"]
@@ -131,15 +132,15 @@ def installation(current_local):
         uninstallation()
     debuglog.info("New Media Builder is being installed. Please wait...")
     parent_of_current_dir = os.path.abspath(os.path.join(current_working_directory, os.pardir))
-    if if_na:
-        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+    if NORTH_AMERICAN:
+        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + BUILD_NUMBER + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     else:
-        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + build_number + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + BUILD_NUMBER + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     debuglog.info('Exexuting ' + installation_command)
     try:
         os.system(installation_command)
     except application.AppStartError:
-        debuglog.info("Check if build number is correct. If NA build is used, specify 'if_na = True', else 'if_na = False'")
+        debuglog.info("Check if build number is correct. If NA build is used, specify 'NORTH_AMERICAN = True', else 'NORTH_AMERICAN = False'")
         exit()
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
         debuglog.info("Installation complete!")
@@ -151,12 +152,12 @@ def main_script(key_list_f, names_list_f, locale):
     """ Goes through the wizard and creates ISO files"""
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         debuglog.info("ISO creation starts...")
-        new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + build_number + '_' + locale
+        new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + BUILD_NUMBER + '_' + locale
         app = Application()
         try:
             app.start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
         except application.AppStartError:
-            debuglog.info("Check if build number is correct. If NA build installed, specify 'if_na = True', else 'if_na = False'")
+            debuglog.info("Check if build number is correct. If NA build installed, specify 'NORTH_AMERICAN = True', else 'NORTH_AMERICAN = False'")
             exit()
         time.sleep(2)
         window = app.window_()
@@ -196,12 +197,14 @@ def main_script(key_list_f, names_list_f, locale):
         while True:  # Re-type key if it is not correct
             key_copy = fxtext.WindowText()
             if key_copy.upper() != key_list_f[k].upper():
+                debuglog.info("Entered key is " + key_copy)
                 debuglog.warning("Entered key is NOT correct. Re-typing...")
                 fxtext.click()
                 fxtext.send_keystrokes('^a')
                 fxtext.send_keystrokes('{DELETE}')
                 fxtext.send_chars(key_list_f[k])
             else:
+                debuglog.info("Entered key is " + key_copy)
                 debuglog.info("Entered key is correct. Continue...")
                 break
         time.sleep(0)
@@ -279,19 +282,19 @@ def start():
     for i in range(len(localization_list)):
         installation(localization_list[i])
         time.sleep(1)
-        if if_na:
-            debuglog.info("'if_na = True' specified")
+        if NORTH_AMERICAN:
+            debuglog.info("'NORTH_AMERICAN = True' specified")
             try:
                 main_script(na_keys_list, na_names_list, localization_list[i])
-            except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled):
-                debuglog.warning("Error: Element Not Found/Enabled! Please Re-run the script.")
+            except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled, timings.TimeoutError):
+                debuglog.warning("Error: Element Not Found or enabled! Timeout error. Please Re-run the script.")
                 exit()
         else:
-            debuglog.info("'if_na = False' specified")
+            debuglog.info("'NORTH_AMERICAN = False' specified")
             try:
                 main_script(keys_list, names_list, localization_list[i])
-            except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled):
-                debuglog.warning("Error: Element Not Found/Enabled! Please Re-run the script.")
+            except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled, timings.TimeoutError):
+                debuglog.warning("Error: Element Not Found or enabled! Timeout error. Please Re-run the script.")
                 exit()
         time.sleep(1)
         uninstallation()
