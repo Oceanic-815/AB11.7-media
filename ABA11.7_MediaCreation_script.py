@@ -27,10 +27,11 @@ import time
 import logging
 import json
 import sys
+from ctypes import *
 
 
-BUILD_NUMBER = "50420"  # Specify a build number with. Example: "50064"
-NORTH_AMERICAN = True   # Set True if NA build is used
+BUILD_NUMBER = "50088"  # Specify a build number with. Example: "50064"
+NORTH_AMERICAN = False   # Set True if NA build is used
 
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -160,10 +161,10 @@ def main_script(key_list_f, names_list_f, locale):
             debuglog.info("Check if build number is correct. If NA build installed, specify 'NORTH_AMERICAN = True', else 'NORTH_AMERICAN = False'")
             exit()
         time.sleep(2)
-        window = app.window_()
-        window.SetFocus()
+        window = app.window()
+        window.set_focus()
         buildwizard = app.BuilderWizard
-        buildwizard.Wait('ready')
+        buildwizard.wait('ready')
         next_button = buildwizard[u'Next >FXButton3']
         debuglog.info("Clicking 'Next' button in the start Wizard page")
         next_button.click()
@@ -195,7 +196,7 @@ def main_script(key_list_f, names_list_f, locale):
         fxtext.send_chars(key_list_f[k])
         fxtext.click()
         while True:  # Re-type key if it is not correct
-            key_copy = fxtext.WindowText()
+            key_copy = fxtext.window_text()
             if key_copy.upper() != key_list_f[k].upper():
                 debuglog.info("Entered key is " + key_copy)
                 debuglog.warning("Entered key is NOT correct. Re-typing...")
@@ -208,7 +209,7 @@ def main_script(key_list_f, names_list_f, locale):
                 debuglog.info("Entered key is correct. Continue...")
                 break
         time.sleep(0)
-        window.SetFocus()
+        window.set_focus()
         fxtext.wait('ready', timeout=20)
         debuglog.info("Clicking 'Next' button in the 'Enter a key' page")
         next_button.click()
@@ -232,7 +233,7 @@ def main_script(key_list_f, names_list_f, locale):
             buildwizard.send_keystrokes('{UP}')
         time.sleep(1)
         debuglog.info("Clicking 'Next' button in the 'Bootable Media format' page")
-        next_button.SetFocus()
+        next_button.set_focus()
         next_button.click()
         time.sleep(1)
         debuglog.info("Clicking a path field")
@@ -244,7 +245,7 @@ def main_script(key_list_f, names_list_f, locale):
         debuglog.info("Specifying a new path and a file name")
         buildwizard.FXAFileNameField.send_chars(new_iso_name)
         while True:  # Re-type ISO name if it is not correct
-            iso_name__copy = buildwizard.FXAFileNameField.WindowText()
+            iso_name__copy = buildwizard.FXAFileNameField.window_text()
             if iso_name__copy.lower() != new_iso_name.lower():  # Checking if ISO name was correctly entered
                 buildwizard.FXAFileNameField.click()
                 buildwizard.FXAFileNameField.send_keystrokes('^a')
@@ -257,7 +258,7 @@ def main_script(key_list_f, names_list_f, locale):
                 break
         time.sleep(0)
         debuglog.info("Clicking 'Next' button in the 'Specify name for ISO' page")
-        next_button.SetFocus()
+        next_button.set_focus()
         next_button.wait('exists visible enabled ready active', timeout=20)
         next_button.set_focus()
         next_button.click()
@@ -301,6 +302,8 @@ def start():
 
 
 if __name__ == '__main__':
+    debuglog.info("Locking mouse and keyboard")
+    windll.user32.BlockInput(True)  # Block mouse/keyboard inputs
     start()
     debuglog.info("Operation completed! See the log file 'C:\MediaCreationLog.log' for more information.")
     debuglog.info("Create TRIAL US media manually!\n")
