@@ -1,19 +1,17 @@
 """
 Script is created to automate Acronis Linux-based Bootable media AB11.7 creation (ISO) using Acronis Media Builder (MB).
-The script uses GUI of the MB, so DO NOT use the mouse and the keyboard while creating ISOs. Better to use a separate VM
+The script uses GUI of the MB, so the mouse and the keyboard will be locked while creating ISOs.
 The script can automatically install MB -> create ISOs -> uninstall MB of existing localization.
-The script detects if there are MSI installers of the MB in ".\installers" folder. If there aren't, all MSI files of MB
-will be unpacked into that folder from the detected BIG installers.
+The script detects if there are MSI installers of the MB in "installers" folder. If there aren't, all MSI files of MB
+will be unpacked into that folder from the detected BIG installers. After that, the script must be restarted.
 How To Use it:
     1. Prepare a VM Win7x64 with 1 CD-ROM and 1 network (DHCP), w/o Floppy or USB flash! Disk C: = 100GB
-    2. Specify new build number in the variable "BUILD_NUMBER", e.g "50073"
-    3. If NA build should be created, specify "NORTH_AMERICAN" = True, if Maint build - False
-    4. Make sure that na_keys.json and keys.json are present in the root folder near the script. They have licenses.
-    5. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
-    6. Put all big installers of ABR to /installers folder and run Unzip.bat. MSI will be extracted to separate folders
-    7. Run the script:> python ABA11.7_MediaCreation_script.py
-    8. Wait when all ISOs of all localizations are created (find them in '/media/' folder).
-    9. Create ISOs with TRIAL keys manually (actual for US localization only)
+    2. Make sure that na_keys.json and keys.json are present in the root folder near the script. They have licenses.
+    3. On the machine, run Setup.bat to setup Python 3 with pywinauto lib and 7zip, and correct system settings
+    4. Put all big installers of ABR to /installers folder and run Unzip.bat. MSI will be extracted to separate folders
+    5. Run the script:> python ABA11.7_MediaCreation_script.py or by double-clicking
+    6. Wait when all ISOs of all localizations are created (find them in '/media/' folder).
+    7. Create ISOs with TRIAL keys manually (actual for US localization only)
 """
 
 from pywinauto.application import Application
@@ -28,10 +26,6 @@ import logging
 import json
 import sys
 from ctypes import *
-
-
-BUILD_NUMBER = "50088"  # Specify a build number with. Example: "50064"
-NORTH_AMERICAN = False   # Set True if NA build is used
 
 
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -52,7 +46,14 @@ def setup_logger(name, log_file, level=logging.INFO):  # Function setup as many 
 
 # Creating a log file
 debuglog = setup_logger('debuglog', 'C:\MediaCreationLog.log')
-debuglog.info('Logging started')
+debuglog.info("Logging started...")
+
+
+def get_build_and_edition(inst_folder_name):
+    if inst_folder_name[26] == "N":
+        return True, inst_folder_name[28:33]
+    else:
+        return False, inst_folder_name[27:32]
 
 
 installer_folder_list = []  # Folders list
@@ -74,7 +75,7 @@ list_of_grouped_localizations = []  # A list of lists of localizations
 localization_list = []  # Ready localizations used for main script
 local = ''
 for i in installer_folder_list:  # Extending list_of_all_localization_symbols list, e.g. [en-US, fr-FR]
-    if NORTH_AMERICAN:
+    if get_build_and_edition(installer_folder_list[0])[0]:
         a = i[34:]
     else:
         a = i[33:]
@@ -88,7 +89,7 @@ for i in installer_folder_list:  # Extending list_of_all_localization_symbols li
         localization_list.extend([local])
 debuglog.info("Installers with the following localizations are found in the folder: " + str(localization_list))
 
-if not NORTH_AMERICAN:
+if not get_build_and_edition(installer_folder_list[0])[0]:
     try:
         data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
         keys_list = data["main_keys"]
@@ -133,10 +134,10 @@ def installation(current_local):
         uninstallation()
     debuglog.info("New Media Builder is being installed. Please wait...")
     parent_of_current_dir = os.path.abspath(os.path.join(current_working_directory, os.pardir))
-    if NORTH_AMERICAN:
-        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + BUILD_NUMBER + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+    if get_build_and_edition(installer_folder_list[0])[0]:
+        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + get_build_and_edition(installer_folder_list[0])[1] + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     else:
-        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + BUILD_NUMBER + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
+        installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + get_build_and_edition(installer_folder_list[0])[1] + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     debuglog.info('Exexuting ' + installation_command)
     try:
         os.system(installation_command)
@@ -153,7 +154,7 @@ def main_script(key_list_f, names_list_f, locale):
     """ Goes through the wizard and creates ISO files"""
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
         debuglog.info("ISO creation starts...")
-        new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + BUILD_NUMBER + '_' + locale
+        new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + get_build_and_edition(installer_folder_list[0])[1] + '_' + locale
         app = Application()
         try:
             app.start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
@@ -279,11 +280,11 @@ def main_script(key_list_f, names_list_f, locale):
             debuglog.warning("ISO is not created!")
 
 
-def start():
+def start():  # Starts loop 'Uninstallation -> Installation -> Creating_ISO -> Uninstallation'
     for i in range(len(localization_list)):
         installation(localization_list[i])
         time.sleep(1)
-        if NORTH_AMERICAN:
+        if get_build_and_edition(installer_folder_list[0])[0]:
             debuglog.info("'NORTH_AMERICAN = True' specified")
             try:
                 main_script(na_keys_list, na_names_list, localization_list[i])
