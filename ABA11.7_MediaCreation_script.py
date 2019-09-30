@@ -94,24 +94,24 @@ if not get_build_and_edition(installer_folder_list[0])[0]:
         data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
         keys_list = data["main_keys"]
     except FileNotFoundError:
-        debuglog.info("ERROR: json file with keys not found! Put the file into the root folder along with the script.")
+        debuglog.error("json file with keys not found! Put the file into the root folder along with the script.")
         exit()
 else:
     try:
         data = json.load(open(".\\na_keys.json", 'r'))
         na_keys_list = data["main_na_keys"]
     except FileNotFoundError:
-        debuglog.info("ERROR: json file with NA keys not found! Put the file into the root folder along with the script.")
+        debuglog.error("json file with NA keys not found! Put the file into the root folder along with the script.")
         exit()
 
 names_list = ["AcronisBackupAdvancedWS_11.7_", "AcronisBackupAdvancedUniversal_11.7_", "AcronisBackupAdvancedHyperV_11.7_", "AcronisBackupAdvancedVMware_11.7_", "AcronisBackupAdvancedRHEV_11.7_", "AcronisBackupAdvancedXEN_11.7_", "AcronisBackupAdvancedOracle_11.7_", "AcronisBackupEssentials_11.7_", "AcronisBackupAdvancedPC_11.7_", "AcronisBackupWS_11.7_", "AcronisBackupPC_11.7_"]
 na_names_list = ['AcronisBackupAdvancedWS_11.7N_', 'AcronisBackupAdvancedUniversal_11.7N_', 'AcronisBackupAdvancedHyperV_11.7N_', 'AcronisBackupAdvancedVMware_11.7N_', 'AcronisBackupAdvancedRHEV_11.7N_', 'AcronisBackupAdvancedXEN_11.7N_', 'AcronisBackupAdvancedOracle_11.7N_', 'AcronisBackupEssentials_11.7N_', 'AcronisBackupAdvancedPC_11.7N_', 'AcronisBackupWS_11.7N_', 'AcronisBackupPC_11.7N_']
-
 os.chdir(".\\media")  # Change current working directory to dir for ISOs
 current_working_directory = os.getcwd()  # Getting the current work dir to use it in Installation func.
 
 try:
     for i in range(len(localization_list)):  # Creating subfolders in /media folder for ISO
+        debuglog.info("Creating subfolders for the installers...")
         os.makedirs(localization_list[i])
 except FileExistsError:
     debuglog.info("Target sub-folders exist")
@@ -120,16 +120,17 @@ except FileExistsError:
 def uninstallation():
     """ Is called when uninstallation of Media Builder is required """
     debuglog.info("Media Builder uninstallation starts!")
+    debuglog.info('Executing "wmic product where vendor="Acronis" call uninstall"')
     os.system('wmic product where vendor="Acronis" call uninstall')
     if not os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
         debuglog.info("Media Builder uninstallation complete!")
     else:
-        debuglog.warning("Media Builder uninstallation FAILED! See MSI log for more information or try uninstalling builder manually")
+        debuglog.warning("Media Builder uninstallation FAILED! See MSI log for more information or try to uninstall the Media builder manually")
 
 
 def installation(current_local):
     """ Is called when installation of Media Builder is required """
-    if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
+    if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe') or os.path.exists('C:\\Program Files\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
         debuglog.info("An unknown Media Builder is present in system and will be uninstalled.")
         uninstallation()
     debuglog.info("New Media Builder is being installed. Please wait...")
@@ -138,16 +139,16 @@ def installation(current_local):
         installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7N_' + get_build_and_edition(installer_folder_list[0])[1] + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
     else:
         installation_command = 'start /wait msiexec /i ' + parent_of_current_dir + '\\installers\\AcronisBackupAdvanced_11.7_' + get_build_and_edition(installer_folder_list[0])[1] + '_' + current_local + '\\AcronisBootableComponentsMediaBuilder.msi /quiet /qn'
-    debuglog.info('Exexuting ' + installation_command)
     try:
+        debuglog.info("Executing " + installation_command)
         os.system(installation_command)
     except application.AppStartError:
-        debuglog.info("Check if build number is correct. If NA build is used, specify 'NORTH_AMERICAN = True', else 'NORTH_AMERICAN = False'")
+        debuglog.error("Check if the installation command and the path to the installer are correct.")
         exit()
     if os.path.exists('C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe'):
         debuglog.info("Installation complete!")
     else:
-        debuglog.warning("Installation failed!")
+        debuglog.error("Installation failed! Check if 'C:\\Program Files (x86)\\Common Files\\Acronis\\MediaBuilder\\MediaBuilder.exe' exists")
 
 
 def main_script(key_list_f, names_list_f, locale):
@@ -158,8 +159,9 @@ def main_script(key_list_f, names_list_f, locale):
         app = Application()
         try:
             app.start("C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe")
+            debuglog.info("Executing 'C:\Program Files (x86)\Common Files\Acronis\MediaBuilder\MediaBuilder.exe'")
         except application.AppStartError:
-            debuglog.info("Check if build number is correct. If NA build installed, specify 'NORTH_AMERICAN = True', else 'NORTH_AMERICAN = False'")
+            debuglog.error("Check if the path to MediaBuilder.exe is correct.")
             exit()
         time.sleep(2)
         window = app.window()
@@ -285,18 +287,18 @@ def start():  # Starts loop 'Uninstallation -> Installation -> Creating_ISO -> U
         installation(localization_list[i])
         time.sleep(1)
         if get_build_and_edition(installer_folder_list[0])[0]:
-            debuglog.info("'NORTH_AMERICAN = True' specified")
+            debuglog.info("'NORTH AMERICAN' build installed in the system")
             try:
                 main_script(na_keys_list, na_names_list, localization_list[i])
             except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled, timings.TimeoutError):
-                debuglog.warning("Error: Element Not Found or enabled! Timeout error. Please Re-run the script.")
+                debuglog.error("Element Not Found or enabled! Timeout error. Please Re-run the script.")
                 exit()
         else:
-            debuglog.info("'NORTH_AMERICAN = False' specified")
+            debuglog.info("'MAINTENANCE' build installed in the system")
             try:
                 main_script(keys_list, names_list, localization_list[i])
             except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled, timings.TimeoutError):
-                debuglog.warning("Error: Element Not Found or enabled! Timeout error. Please Re-run the script.")
+                debuglog.error("Element Not Found or enabled! Timeout error. Please Re-run the script.")
                 exit()
         time.sleep(1)
         uninstallation()
@@ -304,7 +306,7 @@ def start():  # Starts loop 'Uninstallation -> Installation -> Creating_ISO -> U
 
 if __name__ == '__main__':
     debuglog.info("Locking mouse and keyboard")
-    windll.user32.BlockInput(True)  # Block mouse/keyboard inputs
+    #windll.user32.BlockInput(True)  # Block mouse/keyboard inputs
     start()
     debuglog.info("Operation completed! See the log file 'C:\MediaCreationLog.log' for more information.")
     debuglog.info("Create TRIAL US media manually!\n")
