@@ -28,18 +28,18 @@ import sys
 from ctypes import *
 
 
-formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+file_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 console_formatter = logging.Formatter('%(asctime)s %(message)s')
 
 
 def setup_logger(name, log_file, level=logging.INFO):  # Function setup as many loggers as you want
-    handler = logging.FileHandler(log_file)
-    handler.setFormatter(formatter)
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(file_formatter)
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.ERROR)
     logger = logging.getLogger(name)
     logger.setLevel(level)
-    logger.addHandler(handler)
+    logger.addHandler(file_handler)
     logger.addHandler(console_handler)
     return logger
 
@@ -89,20 +89,25 @@ for i in installer_folder_list:  # Extending list_of_all_localization_symbols li
         localization_list.extend([local])
 debuglog.info("Installers with the following localizations are found in the folder: " + str(localization_list))
 
-if not get_build_and_edition(installer_folder_list[0])[0]:
-    try:
-        data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
-        keys_list = data["main_keys"]
-    except FileNotFoundError:
-        debuglog.error("json file with keys not found! Put the file into the root folder along with the script.")
-        exit()
-else:
-    try:
-        data = json.load(open(".\\na_keys.json", 'r'))
-        na_keys_list = data["main_na_keys"]
-    except FileNotFoundError:
-        debuglog.error("json file with NA keys not found! Put the file into the root folder along with the script.")
-        exit()
+try:
+    if not get_build_and_edition(installer_folder_list[0])[0]:
+        try:
+            data = json.load(open(".\\keys.json", 'r'))  # Opening JSON with keys
+            keys_list = data["main_keys"]
+        except FileNotFoundError:
+            debuglog.error("json file with keys not found! Put the file into the root folder along with the script.")
+            exit()
+    else:
+        try:
+            data = json.load(open(".\\na_keys.json", 'r'))
+            na_keys_list = data["main_na_keys"]
+        except FileNotFoundError:
+            debuglog.error("json file with NA keys not found! Put the file into the root folder along with the script.")
+            exit()
+except IndexError:
+    debuglog.error("No installers found in folder '\installers'")
+    exit()
+
 
 names_list = ["AcronisBackupAdvancedWS_11.7_", "AcronisBackupAdvancedUniversal_11.7_", "AcronisBackupAdvancedHyperV_11.7_", "AcronisBackupAdvancedVMware_11.7_", "AcronisBackupAdvancedRHEV_11.7_", "AcronisBackupAdvancedXEN_11.7_", "AcronisBackupAdvancedOracle_11.7_", "AcronisBackupEssentials_11.7_", "AcronisBackupAdvancedPC_11.7_", "AcronisBackupWS_11.7_", "AcronisBackupPC_11.7_"]
 na_names_list = ['AcronisBackupAdvancedWS_11.7N_', 'AcronisBackupAdvancedUniversal_11.7N_', 'AcronisBackupAdvancedHyperV_11.7N_', 'AcronisBackupAdvancedVMware_11.7N_', 'AcronisBackupAdvancedRHEV_11.7N_', 'AcronisBackupAdvancedXEN_11.7N_', 'AcronisBackupAdvancedOracle_11.7N_', 'AcronisBackupEssentials_11.7N_', 'AcronisBackupAdvancedPC_11.7N_', 'AcronisBackupWS_11.7N_', 'AcronisBackupPC_11.7N_']

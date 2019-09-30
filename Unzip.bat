@@ -2,9 +2,9 @@
 color 0E
 cd %CD%\installers
 cls
-echo Extracting. Please wait...
+echo Extracting using Unzip.bat. Please wait...
 7z x *.exe "AcronisBootableComponentsMediaBuilder.msi" -o*
 cls
 echo ============
-echo Media Builder installers are EXTRACTED!
+echo Unzip.bat execution is finished!
 del AcronisBackupAdvanced_*.exe
