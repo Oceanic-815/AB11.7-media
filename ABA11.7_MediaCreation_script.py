@@ -13,7 +13,6 @@ How To Use it:
     6. Wait when all ISOs of all localizations are created (find them in '/media/' folder).
     7. Create ISOs with TRIAL keys manually (actual for US localization only)
 """
-
 from pywinauto.application import Application
 from pywinauto import application
 from pywinauto import base_wrapper
@@ -27,7 +26,7 @@ import json
 import sys
 from ctypes import *
 
-
+start_time = time.time()
 file_formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 console_formatter = logging.Formatter('%(asctime)s %(message)s')
 
@@ -37,6 +36,7 @@ def setup_logger(name, log_file, level=logging.INFO):  # Function setup as many 
     file_handler.setFormatter(file_formatter)
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.ERROR)
+    console_handler.setLevel(logging.WARNING)
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.addHandler(file_handler)
@@ -115,8 +115,8 @@ os.chdir(".\\media")  # Change current working directory to dir for ISOs
 current_working_directory = os.getcwd()  # Getting the current work dir to use it in Installation func.
 
 try:
-    for i in range(len(localization_list)):  # Creating subfolders in /media folder for ISO
-        debuglog.info("Creating subfolders for the installers...")
+    for i in range(len(localization_list)):  # Creating sub-folders in /media folder for ISO
+        debuglog.info("Creating sub-folder " + localization_list[i] + " for the installer")
         os.makedirs(localization_list[i])
 except FileExistsError:
     debuglog.info("Target sub-folders exist")
@@ -159,7 +159,7 @@ def installation(current_local):
 def main_script(key_list_f, names_list_f, locale):
     """ Goes through the wizard and creates ISO files"""
     for k in range(len(key_list_f)):  # k is an index of a license. This is a loop of creating ISOs
-        debuglog.info("ISO creation starts...")
+        debuglog.warning("ISO creation starts...")
         new_iso_name = current_working_directory + "\\" + locale + "\\" + names_list_f[k] + get_build_and_edition(installer_folder_list[0])[1] + '_' + locale
         app = Application()
         try:
@@ -282,9 +282,9 @@ def main_script(key_list_f, names_list_f, locale):
         debuglog.info("Clicking 'OK' button in the message box")
         ok_button_in_box.click()
         if os.path.exists(new_iso_name + ".iso"):  # ISO creation check
-            debuglog.info('Media is created \n====================')
+            debuglog.warning('Media is created \n====================')
         else:
-            debuglog.warning("ISO is not created!")
+            debuglog.error("ISO is not created!")
 
 
 def start():  # Starts loop 'Uninstallation -> Installation -> Creating_ISO -> Uninstallation'
@@ -296,14 +296,16 @@ def start():  # Starts loop 'Uninstallation -> Installation -> Creating_ISO -> U
             try:
                 main_script(na_keys_list, na_names_list, localization_list[i])
             except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled, timings.TimeoutError):
-                debuglog.error("Element Not Found or enabled! Timeout error. Please Re-run the script.")
+                debuglog.error("Element Not Found or enabled! Timeout error. Re-run the script.")
+                debuglog.info("--- Total duration  %s seconds ---" % round((time.time() - start_time)))
                 exit()
         else:
             debuglog.info("'MAINTENANCE' build installed in the system")
             try:
                 main_script(keys_list, names_list, localization_list[i])
             except (MatchError, ElementNotFoundError, base_wrapper.ElementNotEnabled, timings.TimeoutError):
-                debuglog.error("Element Not Found or enabled! Timeout error. Please Re-run the script.")
+                debuglog.error("Element Not Found or enabled! Timeout error. Re-run the script.")
+                debuglog.info("--- Total duration %s seconds ---" % round((time.time() - start_time)))
                 exit()
         time.sleep(1)
         uninstallation()
@@ -311,7 +313,8 @@ def start():  # Starts loop 'Uninstallation -> Installation -> Creating_ISO -> U
 
 if __name__ == '__main__':
     debuglog.info("Locking mouse and keyboard")
-    #windll.user32.BlockInput(True)  # Block mouse/keyboard inputs
+    windll.user32.BlockInput(True)  # Block mouse/keyboard inputs
     start()
     debuglog.info("Operation completed! See the log file 'C:\MediaCreationLog.log' for more information.")
     debuglog.info("Create TRIAL US media manually!\n")
+
